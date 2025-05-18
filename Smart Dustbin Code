@@ -1,0 +1,82 @@
+#include <Servo.h>
+
+// Human detection ultrasonic sensor
+const int trigH = 3;
+const int echoH = 2;
+
+// Garbage level ultrasonic sensor
+const int trigG = 4;
+const int echoG = 5;
+
+const int LED = 6;       // Red LED pin
+const int lockPin = 7;      // Lock mechanism pin (simulate with LED or relay)
+const int servoPin = 9;     // Servo pin for lid
+
+Servo lidServo;
+
+const int fullThreshold = 10; // Garbage is considered full if within 10 cm
+bool isFull = false;
+
+void setup() {
+  pinMode(trigH, OUTPUT);
+  pinMode(echoH, INPUT);
+  pinMode(trigG, OUTPUT);
+  pinMode(echoG, INPUT);
+  pinMode(LED, OUTPUT);
+  pinMode(lockPin, OUTPUT);
+
+  lidServo.attach(servoPin);
+  lidServo.write(0); // Lid closed
+
+  digitalWrite(LED, LOW);
+  digitalWrite(lockPin, LOW);
+
+  Serial.begin(9600);
+}
+
+long getDistance(int trigPin, int echoPin) {
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+
+  long duration = pulseIn(echoPin, HIGH, 30000); // timeout 30ms
+  long distance = duration * 0.034 / 2;
+  return distance;
+}
+
+void loop() {
+  long garbageDistance = getDistance(trigG, echoG);
+
+  Serial.print("Garbage Distance: ");
+  Serial.print(garbageDistance);
+  Serial.print(" cm | ");
+
+  // Check if bin is full
+  if (garbageDistance < fullThreshold) {
+    isFull = true;
+    digitalWrite(LED, HIGH);
+    digitalWrite(lockPin, HIGH); // Engage lock
+    lidServo.write(0); // Ensure lid is closed
+    Serial.println("Bin FULL - Lid locked");
+  } else {
+    isFull = false;
+    digitalWrite(redLED, LOW);
+    digitalWrite(lockPin, LOW); // Unlock
+
+    // Only check for human if bin is NOT full
+    long humanDistance = getDistance(trigH, echoH);
+    Serial.print("Human Distance: ");
+    Serial.print(humanDistance);
+    Serial.println(" cm");
+
+    if (humanDistance > 0 && humanDistance < 20) {
+      lidServo.write(90); // Open lid
+      delay(4000);        // Keep lid open for 4 seconds
+      lidServo.write(0);  // Close lid
+    }
+  }
+
+  delay(500); // Stabilize readings
+}
