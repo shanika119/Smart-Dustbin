@@ -1,0 +1,83 @@
+#define irLeft A0
+#define irRight A1
+#define trigPin 9
+#define echoPin 8
+
+#define in1 2
+#define in2 3
+#define in3 4
+#define in4 5
+
+#define ENA 6
+#define ENB 10
+
+void setup() {
+  Serial.begin(9600);
+
+  pinMode(irLeft, INPUT);
+  pinMode(irRight, INPUT);
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+
+  pinMode(in1, OUTPUT);
+  pinMode(in2, OUTPUT);
+  pinMode(in3, OUTPUT);
+  pinMode(in4, OUTPUT);
+  
+  pinMode(ENA, OUTPUT);
+  pinMode(ENB, OUTPUT);
+
+  // Set initial speed to full (255 max for PWM)
+  analogWrite(ENA, 255);
+  analogWrite(ENB, 255);
+}
+
+long getDistance() {
+  digitalWrite(trigPin, LOW); delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH); delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  long duration = pulseIn(echoPin, HIGH);
+  return duration * 0.034 / 2;
+}
+
+void loop() {
+  int leftIR = digitalRead(irLeft);
+  int rightIR = digitalRead(irRight);
+  long distance = getDistance();
+
+  if (leftIR == 0) {
+    turnLeft();
+  } else if (rightIR == 0) {
+    turnRight();
+  } else if (distance < 30) {
+    moveForward();
+  } else {
+    stopMoving();
+  }
+
+  delay(100);
+}
+
+void moveForward() {
+  analogWrite(ENA, 255); analogWrite(ENB, 255);
+  digitalWrite(in1, HIGH); digitalWrite(in2, LOW);
+  digitalWrite(in3, HIGH); digitalWrite(in4, LOW);
+}
+
+void turnLeft() {
+  analogWrite(ENA, 200); analogWrite(ENB, 200); // optional slower speed for turning
+  digitalWrite(in1, LOW); digitalWrite(in2, HIGH);
+  digitalWrite(in3, HIGH); digitalWrite(in4, LOW);
+}
+
+void turnRight() {
+  analogWrite(ENA, 200); analogWrite(ENB, 200);
+  digitalWrite(in1, HIGH); digitalWrite(in2, LOW);
+  digitalWrite(in3, LOW); digitalWrite(in4, HIGH);
+}
+
+void stopMoving() {
+  analogWrite(ENA, 0); analogWrite(ENB, 0);
+  digitalWrite(in1, LOW); digitalWrite(in2, LOW);
+  digitalWrite(in3, LOW); digitalWrite(in4, LOW);
+}
